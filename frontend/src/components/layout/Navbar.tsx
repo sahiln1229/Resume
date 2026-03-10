@@ -39,7 +39,7 @@ export const Navbar = () => {
                         {['Features', 'Intelligence', 'Profile'].map((item) => (
                             <Link
                                 key={item}
-                                href={item === 'Profile' ? '/dashboard' : `/#${item.toLowerCase()}`}
+                                href={item === 'Profile' ? '/profile' : `/#${item.toLowerCase()}`}
                                 className="text-xs font-black uppercase tracking-[0.2em] text-secondary hover:text-accent transition-colors relative group"
                             >
                                 {item}
@@ -83,19 +83,19 @@ export const Navbar = () => {
                         className="absolute top-full left-0 right-0 mt-4 mx-6 p-8 glass rounded-3xl border-white/10 md:hidden z-[101]"
                     >
                         <div className="flex flex-col gap-8">
-                            {['Features', 'Intelligence', 'Network'].map((item) => (
+                            {['Features', 'Intelligence', 'Profile'].map((item) => (
                                 <Link
                                     key={item}
-                                    href={`/#${item.toLowerCase()}`}
+                                    href={item === 'Profile' ? '/profile' : `/#${item.toLowerCase()}`}
                                     className="text-lg font-black uppercase tracking-widest text-foreground hover:text-accent"
                                     onClick={() => setIsMobileMenuOpen(false)}
                                 >
                                     {item}
                                 </Link>
                             ))}
-                            <Link href="/upload" onClick={() => setIsMobileMenuOpen(false)}>
+                            <Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>
                                 <Button className="w-full h-16 rounded-2xl bg-accent text-white font-black uppercase tracking-widest">
-                                    Launch Interface
+                                    Login
                                 </Button>
                             </Link>
                         </div>

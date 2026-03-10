@@ -109,10 +109,12 @@ export default function LoginPage() {
                                 </div>
 
                                 <Magnetic>
-                                    <Button className="w-full h-18 text-lg font-black uppercase tracking-[0.2em] shadow-3d group bg-accent hover:bg-accent/90">
-                                        {isLogin ? 'Login' : 'Signup'}
-                                        <ArrowRight className="ml-3 group-hover:translate-x-2 transition-transform" />
-                                    </Button>
+                                    <Link href="/profile" className="w-full">
+                                        <Button className="w-full h-18 text-lg font-black uppercase tracking-[0.2em] shadow-3d group bg-accent hover:bg-accent/90">
+                                            {isLogin ? 'Login' : 'Signup'}
+                                            <ArrowRight className="ml-3 group-hover:translate-x-2 transition-transform" />
+                                        </Button>
+                                    </Link>
                                 </Magnetic>
 
                                 <div className="relative py-4">
