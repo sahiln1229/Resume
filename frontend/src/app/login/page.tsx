@@ -136,7 +136,7 @@ export default function LoginPage() {
                                 </div>
 
                                 <Magnetic>
-                                    <Link href="/profile" className="w-full" onClick={handleAuth}>
+                                    <Link href={isLogin ? "/" : "/profile"} className="w-full" onClick={handleAuth}>
                                         <Button className="w-full h-18 text-lg font-black uppercase tracking-[0.2em] shadow-3d group bg-accent hover:bg-accent/90">
                                             {isLogin ? 'Login' : 'Signup'}
                                             <ArrowRight className="ml-3 group-hover:translate-x-2 transition-transform" />
