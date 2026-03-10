@@ -16,6 +16,7 @@ export default function UploadPage() {
     const [file, setFile] = useState<File | null>(null);
     const [isDragging, setIsDragging] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
     const router = useRouter();
 
     // Icon migration effect
@@ -32,6 +33,12 @@ export default function UploadPage() {
         const y = e.clientY - rect.top - rect.height / 2;
         iconX.set(x * 0.1);
         iconY.set(y * 0.1);
+    };
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            setFile(e.target.files[0]);
+        }
     };
 
     const handleUpload = () => {
@@ -73,14 +80,22 @@ export default function UploadPage() {
                     >
                         <div
                             className={cn(
-                                "p-20 border-4 border-dashed transition-all duration-700 flex flex-col items-center justify-center text-center relative",
+                                "p-20 border-4 border-dashed transition-all duration-700 flex flex-col items-center justify-center text-center relative cursor-pointer",
                                 isDragging ? "border-accent bg-accent/10 scale-[0.98]" : "border-border bg-transparent hover:border-accent/20",
-                                file ? "border-none" : ""
+                                file ? "border-none cursor-default" : ""
                             )}
                             onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
                             onDragLeave={() => setIsDragging(false)}
                             onDrop={(e) => { e.preventDefault(); setIsDragging(false); const f = e.dataTransfer.files[0]; if (f) setFile(f); }}
+                            onClick={() => !file && fileInputRef.current?.click()}
                         >
+                            <input
+                                type="file"
+                                ref={fileInputRef}
+                                onChange={handleFileChange}
+                                accept=".pdf,.doc,.docx"
+                                className="hidden"
+                            />
                             {!file ? (
                                 <div className="group">
                                     <motion.div
