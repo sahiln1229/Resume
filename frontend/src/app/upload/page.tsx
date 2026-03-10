@@ -73,7 +73,10 @@ export default function UploadPage() {
                     router.push('/dashboard');
                 } else if (data.status === 'error') {
                     setUploadStatus("Error: " + data.message);
-                    setIsProcessing(false);
+                    setTimeout(() => {
+                        setIsProcessing(false);
+                        setUploadStatus("Initializing...");
+                    }, 4000);
                     socket.disconnect();
                 }
             });
@@ -81,7 +84,10 @@ export default function UploadPage() {
         } catch (error) {
             console.error("Upload error:", error);
             setUploadStatus("Failed to connect to Neural Server");
-            setIsProcessing(false);
+            setTimeout(() => {
+                setIsProcessing(false);
+                setUploadStatus("Initializing...");
+            }, 3000);
         }
     };
 
@@ -171,9 +177,13 @@ export default function UploadPage() {
                                     <Magnetic>
                                         <Button
                                             size="lg"
-                                            onClick={handleUpload}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                console.log("Triggering Neural Sync...");
+                                                handleUpload();
+                                            }}
                                             disabled={isProcessing}
-                                            className="w-full h-24 text-2xl font-black uppercase tracking-[0.2em] shadow-3d group relative overflow-hidden bg-accent hover:bg-accent/90"
+                                            className="w-full h-24 text-2xl md:text-3xl font-black uppercase tracking-[0.2em] shadow-3d group relative overflow-hidden bg-accent hover:bg-accent/90"
                                         >
                                             {isProcessing ? (
                                                 <div className="flex items-center gap-4">

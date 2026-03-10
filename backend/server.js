@@ -38,6 +38,8 @@ if (process.env.MONGODB_URI) {
 }
 
 // Routes
+const authRoutes = require('./routes/auth');
+app.use('/api/auth', authRoutes);
 app.use('/api', resumeRoutes);
 
 // Socket.io connection logging

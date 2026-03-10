@@ -1,6 +1,12 @@
 const Resume = require('../models/Resume');
 const { extractTextFromFile } = require('../services/fileParser');
 const { analyzeResumeWithAI } = require('../services/aiService');
+const mongoose = require('mongoose');
+
+// In-memory fallback if MONGODB_URI is not provided
+const fallbackStorage = new Map();
+
+const isDbConnected = () => mongoose.connection.readyState === 1;
 
 /**
  * Handle resume upload, parsing, saving, and kick-off AI analysis
@@ -11,22 +17,29 @@ const uploadResume = async (req, res) => {
             return res.status(400).json({ error: 'No file uploaded' });
         }
 
-        // Initialize resume record in DB
-        const newResume = new Resume({
+        const resumeIdStr = new mongoose.Types.ObjectId().toString();
+        let resumeRecord = {
+            _id: resumeIdStr,
             uploadedFileName: req.file.originalname,
-            resumeText: 'Parsing...', // Placeholder
-            analysisStatus: 'analyzing'
-        });
-        await newResume.save();
+            resumeText: 'Parsing...',
+            analysisStatus: 'analyzing',
+            aiAnalysisResult: null
+        };
+
+        if (isDbConnected()) {
+            resumeRecord = new Resume(resumeRecord);
+            await resumeRecord.save();
+        } else {
+            fallbackStorage.set(resumeIdStr, resumeRecord);
+        }
 
         res.status(202).json({
             message: 'Resume uploaded successfully. Analysis started.',
-            resumeId: newResume._id,
+            resumeId: resumeIdStr,
             status: 'analyzing'
         });
 
         const io = req.app.get('io');
-        const resumeIdStr = newResume._id.toString();
 
         // Notify client analysis started
         io.emit(`analysis-progress-${resumeIdStr}`, { status: 'extracting-text' });
@@ -35,12 +48,16 @@ const uploadResume = async (req, res) => {
         let extractedText;
         try {
             extractedText = await extractTextFromFile(req.file);
-            newResume.resumeText = extractedText;
-            await newResume.save();
+            resumeRecord.resumeText = extractedText;
+            if (isDbConnected()) await resumeRecord.save();
+            else fallbackStorage.set(resumeIdStr, resumeRecord);
+
             io.emit(`analysis-progress-${resumeIdStr}`, { status: 'analyzing-ai' });
         } catch (error) {
-            newResume.analysisStatus = 'error';
-            await newResume.save();
+            resumeRecord.analysisStatus = 'error';
+            if (isDbConnected()) await resumeRecord.save();
+            else fallbackStorage.set(resumeIdStr, resumeRecord);
+
             io.emit(`analysis-progress-${resumeIdStr}`, { status: 'error', message: 'Failed to read file format' });
             return;
         }
@@ -50,7 +67,7 @@ const uploadResume = async (req, res) => {
             const aiResult = await analyzeResumeWithAI(extractedText);
 
             // Ensure structure contains default arrays if missing
-            newResume.aiAnalysisResult = {
+            resumeRecord.aiAnalysisResult = {
                 resumeScore: aiResult.resumeScore || 0,
                 improvedBulletPoints: aiResult.improvedBulletPoints || [],
                 grammarSuggestions: aiResult.grammarSuggestions || [],
@@ -60,8 +77,10 @@ const uploadResume = async (req, res) => {
                 viewFeedback: aiResult.sectionFeedback || [],
                 interviewQuestions: aiResult.interviewQuestions || []
             };
-            newResume.analysisStatus = 'completed';
-            await newResume.save();
+            resumeRecord.analysisStatus = 'completed';
+
+            if (isDbConnected()) await resumeRecord.save();
+            else fallbackStorage.set(resumeIdStr, resumeRecord);
 
             io.emit(`analysis-progress-${resumeIdStr}`, {
                 status: 'completed',
@@ -69,8 +88,10 @@ const uploadResume = async (req, res) => {
             });
 
         } catch (error) {
-            newResume.analysisStatus = 'error';
-            await newResume.save();
+            resumeRecord.analysisStatus = 'error';
+            if (isDbConnected()) await resumeRecord.save();
+            else fallbackStorage.set(resumeIdStr, resumeRecord);
+
             io.emit(`analysis-progress-${resumeIdStr}`, { status: 'error', message: 'AI Analysis failed' });
         }
 
@@ -86,7 +107,13 @@ const uploadResume = async (req, res) => {
 const getResumeAnalysis = async (req, res) => {
     try {
         const { id } = req.params;
-        const resume = await Resume.findById(id);
+        let resume;
+
+        if (isDbConnected()) {
+            resume = await Resume.findById(id);
+        } else {
+            resume = fallbackStorage.get(id);
+        }
 
         if (!resume) {
             return res.status(404).json({ error: 'Resume not found' });

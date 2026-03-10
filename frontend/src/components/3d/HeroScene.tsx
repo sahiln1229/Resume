@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Text, Float } from '@react-three/drei';
 import * as THREE from 'three';
@@ -8,6 +8,22 @@ import * as THREE from 'three';
 export function FloatingResume() {
     const group = useRef<THREE.Group>(null);
     const sheet = useRef<THREE.Mesh>(null);
+    const [userName, setUserName] = useState('JOHN DOE');
+
+    useEffect(() => {
+        const fetchName = () => {
+            const authInfo = localStorage.getItem('auth_user_info');
+            if (authInfo) {
+                const parsed = JSON.parse(authInfo);
+                if (parsed.name) setUserName(parsed.name);
+            } else {
+                setUserName('JOHN DOE');
+            }
+        };
+        fetchName();
+        window.addEventListener('storage', fetchName);
+        return () => window.removeEventListener('storage', fetchName);
+    }, []);
 
     useFrame((state) => {
         if (!group.current) return;
@@ -35,7 +51,7 @@ export function FloatingResume() {
                         color="#020617"
                         anchorX="left"
                     >
-                        JOHN DOE
+                        {userName.toUpperCase()}
                     </Text>
                     <Text
                         position={[-1.8, 2, 0]}

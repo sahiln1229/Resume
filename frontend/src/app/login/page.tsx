@@ -21,9 +21,11 @@ import Magnetic from '@/components/ui/Magnetic';
 import PerspectiveCard from '@/components/ui/PerspectiveCard';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import axios from 'axios';
 
 export default function LoginPage() {
     const [isLogin, setIsLogin] = useState(true);
+    const [isProcessing, setIsProcessing] = useState(false);
     const [formData, setFormData] = useState({
         email: '',
         password: '',
@@ -33,7 +35,7 @@ export default function LoginPage() {
     const [error, setError] = useState('');
     const router = useRouter();
 
-    const handleAuth = (e: React.FormEvent) => {
+    const handleAuth = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
 
@@ -49,16 +51,35 @@ export default function LoginPage() {
             }
         }
 
-        // Save auth info for profile auto-fill
-        localStorage.setItem('auth_user_info', JSON.stringify({
-            name: formData.name,
-            email: formData.email
-        }));
+        setIsProcessing(true);
 
-        // Dispatch storage event to update Navbar
-        window.dispatchEvent(new Event('storage'));
+        try {
+            const endpoint = isLogin ? '/api/auth/login' : '/api/auth/register';
+            const payload = isLogin
+                ? { email: formData.email, password: formData.password }
+                : formData;
 
-        router.push(isLogin ? "/" : "/profile");
+            const response = await axios.post(`http://localhost:5000${endpoint}`, payload);
+
+            // Save auth info for profile auto-fill and auth checks
+            localStorage.setItem('auth_token', response.data.token);
+            localStorage.setItem('auth_user_info', JSON.stringify(response.data.user));
+
+            if (!isLogin) {
+                // Ensure new signups start with a completely empty profile
+                localStorage.removeItem('user_profile_data');
+            }
+
+            // Dispatch storage event to update Navbar
+            window.dispatchEvent(new Event('storage'));
+
+            router.push(isLogin ? "/" : "/profile");
+        } catch (err: any) {
+            console.error("Auth error:", err);
+            setError(err.response?.data?.error || 'Neural link failed. Try again.');
+        } finally {
+            setIsProcessing(false);
+        }
     };
 
     return (
@@ -172,10 +193,20 @@ export default function LoginPage() {
                                 <Magnetic>
                                     <Button
                                         onClick={handleAuth}
+                                        disabled={isProcessing}
                                         className="w-full h-18 text-lg font-black uppercase tracking-[0.2em] shadow-3d group bg-accent hover:bg-accent/90"
                                     >
-                                        {isLogin ? 'Login' : 'Signup'}
-                                        <ArrowRight className="ml-3 group-hover:translate-x-2 transition-transform" />
+                                        {isProcessing ? (
+                                            <span className="animate-pulse flex items-center gap-3">
+                                                <Sparkles size={20} className="animate-spin" />
+                                                Processing...
+                                            </span>
+                                        ) : (
+                                            <>
+                                                {isLogin ? 'Login' : 'Signup'}
+                                                <ArrowRight className="ml-3 group-hover:translate-x-2 transition-transform" />
+                                            </>
+                                        )}
                                     </Button>
                                 </Magnetic>
 

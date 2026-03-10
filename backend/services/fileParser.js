@@ -1,5 +1,5 @@
 const fs = require('fs');
-const pdfParse = require('pdf-parse');
+const PDFParser = require("pdf2json");
 const mammoth = require('mammoth');
 
 /**
@@ -15,9 +15,16 @@ const extractTextFromFile = async (file) => {
         let extractedText = '';
 
         if (fileExtension === 'pdf') {
-            const dataBuffer = fs.readFileSync(filePath);
-            const data = await pdfParse(dataBuffer);
-            extractedText = data.text;
+            extractedText = await new Promise((resolve, reject) => {
+                const pdfParser = new PDFParser(this, 1);
+
+                pdfParser.on("pdfParser_dataError", errData => reject(errData.parserError));
+                pdfParser.on("pdfParser_dataReady", pdfData => {
+                    resolve(pdfParser.getRawTextContent());
+                });
+
+                pdfParser.loadPDF(filePath);
+            });
         } else if (fileExtension === 'docx') {
             const result = await mammoth.extractRawText({ path: filePath });
             extractedText = result.value;

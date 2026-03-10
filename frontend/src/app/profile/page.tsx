@@ -76,19 +76,41 @@ export default function ProfilePage() {
 
     // Load data from localStorage on mount
     useEffect(() => {
-        const savedProfile = localStorage.getItem('user_profile_data');
-        const authInfo = localStorage.getItem('auth_user_info');
+        const savedProfileStr = localStorage.getItem('user_profile_data');
+        const authInfoStr = localStorage.getItem('auth_user_info');
 
-        if (savedProfile) {
-            setData(JSON.parse(savedProfile));
-            setIsEditing(false);
-        } else if (authInfo) {
-            const { name, email } = JSON.parse(authInfo);
-            setData(prev => ({
-                ...prev,
-                name: name || '',
-                email: email || ''
-            }));
+        let currentUserEmail = '';
+        let currentUserName = '';
+
+        if (authInfoStr) {
+            const authInfo = JSON.parse(authInfoStr);
+            currentUserEmail = authInfo.email || '';
+            currentUserName = authInfo.name || '';
+        }
+
+        if (savedProfileStr) {
+            const parsedProfile = JSON.parse(savedProfileStr);
+            // Verify if the cached profile belongs to the currently logged in identity
+            if (parsedProfile.email === currentUserEmail) {
+                setData(parsedProfile);
+                setIsEditing(false);
+            } else {
+                // Mismatch found, indicating a different user session. Wipe and pre-fill clean.
+                setData({
+                    ...initialData,
+                    name: currentUserName,
+                    email: currentUserEmail
+                });
+                setIsEditing(true);
+            }
+        } else if (authInfoStr) {
+            // New user scenario
+            setData({
+                ...initialData,
+                name: currentUserName,
+                email: currentUserEmail
+            });
+            setIsEditing(true);
         }
     }, []);
 
@@ -173,7 +195,7 @@ export default function ProfilePage() {
                                 </div>
 
                                 <h3 className="text-xl font-black text-foreground truncate w-full px-2">
-                                    {data.name || 'Anonymous User'}
+                                    {data.name || 'John Doe'}
                                 </h3>
                                 <p className="text-xs font-black text-secondary tracking-widest uppercase mb-6">Level 0: Initializing Access</p>
 
