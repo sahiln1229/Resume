@@ -11,8 +11,20 @@ import Magnetic from '@/components/ui/Magnetic';
 export const Navbar = () => {
     const [isScrolled, setIsScrolled] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
 
     const router = useRouter();
+
+    useEffect(() => {
+        const checkAuth = () => {
+            const auth = localStorage.getItem('auth_user_info');
+            setIsLoggedIn(!!auth);
+        };
+        checkAuth();
+        // Check auth every time the navbar is rendered or route changes
+        window.addEventListener('storage', checkAuth);
+        return () => window.removeEventListener('storage', checkAuth);
+    }, []);
 
     useEffect(() => {
         const handleScroll = () => setIsScrolled(window.scrollY > 20);
@@ -22,6 +34,7 @@ export const Navbar = () => {
 
     const handleLogout = () => {
         localStorage.removeItem('auth_user_info');
+        setIsLoggedIn(false);
         router.push('/login');
     };
 
@@ -57,19 +70,22 @@ export const Navbar = () => {
                     </div>
 
                     <div className="hidden md:flex items-center gap-4">
-                        <Link href="/login">
+                        {!isLoggedIn ? (
+                            <Link href="/login">
+                                <Magnetic>
+                                    <Button className="h-14 px-8 rounded-2xl bg-accent hover:bg-accent/90 text-white font-black uppercase tracking-widest shadow-3d group">
+                                        Login
+                                        <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                                    </Button>
+                                </Magnetic>
+                            </Link>
+                        ) : (
                             <Magnetic>
-                                <Button className="h-14 px-8 rounded-2xl bg-accent hover:bg-accent/90 text-white font-black uppercase tracking-widest shadow-3d group">
-                                    Login
-                                    <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                                <Button variant="outline" onClick={handleLogout} className="h-14 px-8 rounded-2xl border-white/10 bg-white/5 hover:bg-white/10 text-secondary font-black uppercase tracking-widest">
+                                    Logout
                                 </Button>
                             </Magnetic>
-                        </Link>
-                        <Magnetic>
-                            <Button variant="outline" onClick={handleLogout} className="h-14 px-8 rounded-2xl border-white/10 bg-white/5 hover:bg-white/10 text-secondary font-black uppercase tracking-widest">
-                                Logout
-                            </Button>
-                        </Magnetic>
+                        )}
                     </div>
 
                     <button
@@ -101,11 +117,17 @@ export const Navbar = () => {
                                     {item}
                                 </Link>
                             ))}
-                            <Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>
-                                <Button className="w-full h-16 rounded-2xl bg-accent text-white font-black uppercase tracking-widest">
-                                    Login
+                            {!isLoggedIn ? (
+                                <Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>
+                                    <Button className="w-full h-16 rounded-2xl bg-accent text-white font-black uppercase tracking-widest">
+                                        Login
+                                    </Button>
+                                </Link>
+                            ) : (
+                                <Button onClick={handleLogout} variant="outline" className="w-full h-16 rounded-2xl border-white/10 bg-white/5 text-secondary font-black uppercase tracking-widest">
+                                    Logout
                                 </Button>
-                            </Link>
+                            )}
                         </div>
                     </motion.div>
                 )}

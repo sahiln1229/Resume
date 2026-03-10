@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/Button';
 import Scene3D from '@/components/3d/Scene3D';
 import Magnetic from '@/components/ui/Magnetic';
 import PerspectiveCard from '@/components/ui/PerspectiveCard';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 export default function LoginPage() {
@@ -29,12 +30,35 @@ export default function LoginPage() {
         name: ''
     });
 
-    const handleAuth = () => {
+    const [error, setError] = useState('');
+    const router = useRouter();
+
+    const handleAuth = (e: React.FormEvent) => {
+        e.preventDefault();
+        setError('');
+
+        if (isLogin) {
+            if (!formData.email || !formData.password) {
+                setError('Please provide all credentials');
+                return;
+            }
+        } else {
+            if (!formData.name || !formData.email || !formData.password) {
+                setError('Please initialize all identity parameters');
+                return;
+            }
+        }
+
         // Save auth info for profile auto-fill
         localStorage.setItem('auth_user_info', JSON.stringify({
             name: formData.name,
             email: formData.email
         }));
+
+        // Dispatch storage event to update Navbar
+        window.dispatchEvent(new Event('storage'));
+
+        router.push(isLogin ? "/" : "/profile");
     };
 
     return (
@@ -135,13 +159,24 @@ export default function LoginPage() {
                                     </div>
                                 </div>
 
+                                {error && (
+                                    <motion.p
+                                        initial={{ opacity: 0, y: -10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        className="text-[10px] font-black text-red-500 uppercase tracking-widest text-center"
+                                    >
+                                        Error: {error}
+                                    </motion.p>
+                                )}
+
                                 <Magnetic>
-                                    <Link href={isLogin ? "/" : "/profile"} className="w-full" onClick={handleAuth}>
-                                        <Button className="w-full h-18 text-lg font-black uppercase tracking-[0.2em] shadow-3d group bg-accent hover:bg-accent/90">
-                                            {isLogin ? 'Login' : 'Signup'}
-                                            <ArrowRight className="ml-3 group-hover:translate-x-2 transition-transform" />
-                                        </Button>
-                                    </Link>
+                                    <Button
+                                        onClick={handleAuth}
+                                        className="w-full h-18 text-lg font-black uppercase tracking-[0.2em] shadow-3d group bg-accent hover:bg-accent/90"
+                                    >
+                                        {isLogin ? 'Login' : 'Signup'}
+                                        <ArrowRight className="ml-3 group-hover:translate-x-2 transition-transform" />
+                                    </Button>
                                 </Magnetic>
 
                                 <div className="relative py-4">
