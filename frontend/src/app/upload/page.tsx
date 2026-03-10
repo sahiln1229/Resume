@@ -11,6 +11,8 @@ import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import Magnetic from '@/components/ui/Magnetic';
 import PerspectiveCard from '@/components/ui/PerspectiveCard';
+import axios from 'axios';
+import { io } from 'socket.io-client';
 
 export default function UploadPage() {
     const [file, setFile] = useState<File | null>(null);
@@ -25,6 +27,8 @@ export default function UploadPage() {
     const iconY = useMotionValue(0);
     const smoothX = useSpring(iconX, { damping: 20, stiffness: 100 });
     const smoothY = useSpring(iconY, { damping: 20, stiffness: 100 });
+
+    const [uploadStatus, setUploadStatus] = useState<string>("Initializing...");
 
     const handleMouseMove = (e: React.MouseEvent) => {
         if (!boxRef.current) return;
@@ -41,12 +45,46 @@ export default function UploadPage() {
         }
     };
 
-    const handleUpload = () => {
+    const handleUpload = async () => {
+        if (!file) return;
         setIsProcessing(true);
-        setTimeout(() => {
-            router.push('/dashboard');
-        }, 2000);
+        setUploadStatus("Uploading file...");
+
+        const formData = new FormData();
+        formData.append('resume', file);
+
+        try {
+            const response = await axios.post('http://localhost:5000/api/uploadResume', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+
+            const { resumeId } = response.data;
+            const socket = io('http://localhost:5000');
+
+            socket.on(`analysis-progress-${resumeId}`, (data: any) => {
+                if (data.status === 'extracting-text') {
+                    setUploadStatus("Extracting Neural Data...");
+                } else if (data.status === 'analyzing-ai') {
+                    setUploadStatus("AI Matrix Analyzing...");
+                } else if (data.status === 'completed') {
+                    setUploadStatus("Analysis Complete!");
+                    socket.disconnect();
+                    localStorage.setItem('currentResumeId', resumeId);
+                    router.push('/dashboard');
+                } else if (data.status === 'error') {
+                    setUploadStatus("Error: " + data.message);
+                    setIsProcessing(false);
+                    socket.disconnect();
+                }
+            });
+
+        } catch (error) {
+            console.error("Upload error:", error);
+            setUploadStatus("Failed to connect to Neural Server");
+            setIsProcessing(false);
+        }
     };
+
 
     return (
         <main className="min-h-screen pt-40 pb-20 px-4 relative overflow-hidden bg-transparent">
@@ -138,9 +176,12 @@ export default function UploadPage() {
                                             className="w-full h-24 text-2xl font-black uppercase tracking-[0.2em] shadow-3d group relative overflow-hidden bg-accent hover:bg-accent/90"
                                         >
                                             {isProcessing ? (
-                                                <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}>
-                                                    <Sparkles size={32} />
-                                                </motion.div>
+                                                <div className="flex items-center gap-4">
+                                                    <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}>
+                                                        <Sparkles size={32} />
+                                                    </motion.div>
+                                                    <span className="text-xl animate-pulse">{uploadStatus}</span>
+                                                </div>
                                             ) : (
                                                 <>
                                                     Execute Neural Sync

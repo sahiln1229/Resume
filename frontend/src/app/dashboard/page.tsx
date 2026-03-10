@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
 import {
     BarChart3,
     Brain,
@@ -17,7 +18,8 @@ import {
     Layout,
     Check,
     X,
-    MessageSquare
+    MessageSquare,
+    Loader2
 } from 'lucide-react';
 import {
     Radar,
@@ -34,60 +36,95 @@ import { cn } from '@/lib/utils';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/dist/ScrollTrigger';
 import Link from 'next/link';
+import axios from 'axios';
 
 gsap.registerPlugin(ScrollTrigger);
-
-const data = [
-    { subject: 'ATS Score', A: 85, fullMark: 100 },
-    { subject: 'Keywords', A: 92, fullMark: 100 },
-    { subject: 'Grammar', A: 78, fullMark: 100 },
-    { subject: 'Structure', A: 95, fullMark: 100 },
-    { subject: 'Impact', A: 82, fullMark: 100 },
-];
-
-const improvedBullets = [
-    {
-        original: "Managed a team of developers to build web apps.",
-        improved: "Orchestrated a high-performance team of 8 engineers, delivering 4 mission-critical web applications with a 25% increase in deployment velocity.",
-        impact: "Leadership & Scalability"
-    },
-    {
-        original: "Used React to create responsive user interfaces.",
-        improved: "Optimized frontend architecture using Next.js and Tailwind CSS, achieving a 40% improvement in First Contentful Paint across all mobile platforms.",
-        impact: "Performance Optimization"
-    }
-];
-
-const grammarFixes = [
-    { error: "Experience in building...", correction: "Proven track record in architecting...", type: "Tone" },
-    { error: "Responsible for managing...", correction: "Spearheaded management of...", type: "Action Verb" },
-];
-
-const sectionFeedback = [
-    { section: "Experience", score: 88, feedback: "Highly quantitative and impact-driven. Minor formatting issues in early roles.", status: "Strong" },
-    { section: "Education", score: 95, feedback: "Clearly presented with relevant honors. Perfect layout.", status: "Elite" },
-    { section: "Skills", score: 72, feedback: "Good categorization, but missing several keywords found in Tier-1 descriptions.", status: "Improve" },
-];
 
 export default function DashboardPage() {
     const scoreRef = useRef(null);
     const [activeTab, setActiveTab] = useState('overview');
+    const [analysisData, setAnalysisData] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
 
     useEffect(() => {
-        gsap.fromTo(scoreRef.current,
-            { innerText: 0 },
-            {
-                innerText: 85,
-                duration: 2,
-                snap: { innerText: 1 },
-                ease: "power2.out",
-                scrollTrigger: {
-                    trigger: scoreRef.current,
-                    start: "top 80%",
+        const fetchAnalysis = async () => {
+            try {
+                const resumeId = localStorage.getItem('currentResumeId');
+                if (!resumeId) {
+                    setError("No resume analysis found. Please upload a resume first.");
+                    setLoading(false);
+                    return;
                 }
+
+                const res = await axios.get(`http://localhost:5000/api/resumeAnalysis/${resumeId}`);
+                setAnalysisData(res.data.aiAnalysisResult);
+            } catch (err) {
+                console.error("Error fetching analysis:", err);
+                setError("Failed to load analysis data from the server.");
+            } finally {
+                setLoading(false);
             }
-        );
+        };
+
+        fetchAnalysis();
     }, []);
+
+    useEffect(() => {
+        if (!loading && analysisData?.resumeScore && scoreRef.current) {
+            gsap.fromTo(scoreRef.current,
+                { innerText: 0 },
+                {
+                    innerText: analysisData.resumeScore,
+                    duration: 2,
+                    snap: { innerText: 1 },
+                    ease: "power2.out",
+                    scrollTrigger: {
+                        trigger: scoreRef.current,
+                        start: "top 80%",
+                    }
+                }
+            );
+        }
+    }, [loading, analysisData]);
+
+    if (loading) {
+        return (
+            <main className="min-h-screen pt-40 pb-20 px-6 relative overflow-hidden bg-transparent flex flex-col items-center justify-center">
+                <Scene3D />
+                <Navbar />
+                <Loader2 className="w-16 h-16 animate-spin text-accent mb-6 relative z-10" />
+                <h2 className="text-2xl font-black text-foreground tracking-widest uppercase relative z-10">Retrieving Neural Diagnostics...</h2>
+            </main>
+        );
+    }
+
+    if (error || !analysisData) {
+        return (
+            <main className="min-h-screen pt-40 pb-20 px-6 relative overflow-hidden bg-transparent flex flex-col items-center justify-center">
+                <Scene3D />
+                <Navbar />
+                <div className="p-8 rounded-3xl bg-red-500/10 border border-red-500/20 text-center relative z-10 max-w-lg">
+                    <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+                    <h2 className="text-2xl font-black text-foreground mb-2">Diagnostic Error</h2>
+                    <p className="text-secondary mb-8">{error}</p>
+                    <Link href="/upload">
+                        <Button className="h-12 px-8 bg-white/5 hover:bg-white/10 text-white font-black uppercase tracking-widest rounded-xl transition-all">
+                            Return to Upload
+                        </Button>
+                    </Link>
+                </div>
+            </main>
+        );
+    }
+
+    const {
+        resumeScore = 0,
+        improvedBulletPoints = [],
+        grammarSuggestions = [],
+        missingSkills = [],
+        viewFeedback = []
+    } = analysisData;
 
     return (
         <main className="min-h-screen pt-40 pb-20 px-6 relative overflow-hidden bg-transparent">
@@ -167,17 +204,17 @@ export default function DashboardPage() {
                                     <Brain className="text-accent" size={16} />
                                 </div>
                                 <div className="space-y-4">
-                                    <div className="p-4 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center justify-between">
-                                        <span className="text-xs font-black text-green-500 uppercase tracking-widest">Matched Skills</span>
-                                        <span className="text-sm font-black text-foreground">14</span>
+                                    <div className="p-4 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-between xl:mb-6">
+                                        <span className="text-xs font-black text-accent uppercase tracking-widest">Target Role</span>
+                                        <span className="text-sm font-black text-foreground">Agnostic Base</span>
                                     </div>
                                     <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-between">
-                                        <span className="text-xs font-black text-red-500 uppercase tracking-widest">Missing Skills</span>
-                                        <span className="text-sm font-black text-foreground">6</span>
+                                        <span className="text-xs font-black text-red-500 uppercase tracking-widest">Critical Missing Skills</span>
+                                        <span className="text-sm font-black text-foreground">{missingSkills.length}</span>
                                     </div>
-                                    <div className="flex flex-wrap gap-2 mt-6">
-                                        {['System Design', 'CI/CD', 'GraphQL', 'Redis', 'WebSockets', 'Kubernetes'].map((skill) => (
-                                            <span key={skill} className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-[10px] font-black text-secondary uppercase tracking-widest hover:border-accent/40 transition-colors">
+                                    <div className="flex flex-wrap gap-2 mt-6 max-h-48 overflow-y-auto">
+                                        {missingSkills.map((skill: string) => (
+                                            <span key={skill} className="px-3 py-1.5 rounded-lg bg-red-500/5 border border-red-500/10 text-[10px] font-black text-secondary uppercase tracking-widest transition-colors mb-1">
                                                 {skill}
                                             </span>
                                         ))}
@@ -226,11 +263,11 @@ export default function DashboardPage() {
                                                     </div>
                                                 </div>
                                                 <div className="space-y-8">
-                                                    {improvedBullets.map((item, i) => (
+                                                    {improvedBulletPoints.map((item: any, i: number) => (
                                                         <div key={i} className="space-y-4">
                                                             <div className="flex items-center gap-3">
                                                                 <div className="px-2 py-1 rounded bg-accent/10 border border-accent/20 text-[8px] font-black text-accent uppercase tracking-widest">
-                                                                    {item.impact}
+                                                                    {item.impact || "Improvement"}
                                                                 </div>
                                                             </div>
                                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 rounded-2xl bg-white/5 border border-white/10 border-dashed">
@@ -265,7 +302,7 @@ export default function DashboardPage() {
                                                     </div>
                                                 </div>
                                                 <div className="space-y-4">
-                                                    {grammarFixes.map((item, i) => (
+                                                    {grammarSuggestions.map((item: any, i: number) => (
                                                         <div key={i} className="flex items-start gap-6 p-6 rounded-2xl bg-white/5 border border-white/10 group hover:border-accent/40 transition-colors">
                                                             <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center text-secondary-accent shrink-0 font-black">
                                                                 {i + 1}
@@ -299,7 +336,7 @@ export default function DashboardPage() {
                                                     </div>
                                                 </div>
                                                 <div className="grid gap-6">
-                                                    {sectionFeedback.map((item, i) => (
+                                                    {viewFeedback.map((item: any, i: number) => (
                                                         <div key={i} className="p-8 rounded-3xl bg-white/5 border border-white/10 relative overflow-hidden group">
                                                             <div className="absolute top-0 right-0 p-8">
                                                                 <div className="text-4xl font-black text-white/5 group-hover:text-accent/10 transition-colors">{item.score}%</div>

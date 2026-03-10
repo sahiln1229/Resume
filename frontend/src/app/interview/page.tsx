@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -8,11 +8,12 @@ import { Navbar } from '@/components/layout/Navbar';
 import Scene3D from '@/components/3d/Scene3D';
 import PerspectiveCard from '@/components/ui/PerspectiveCard';
 import Magnetic from '@/components/ui/Magnetic';
-import { Sparkles, MessageSquare, ArrowRight, Brain, CheckCircle2, ChevronRight, RefreshCcw, AlertCircle } from 'lucide-react';
+import { Sparkles, MessageSquare, ArrowRight, Brain, CheckCircle2, ChevronRight, RefreshCcw, AlertCircle, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
+import axios from 'axios';
 
-const INTERVIEW_QUESTIONS = [
+const FALLBACK_QUESTIONS = [
     "Tell me about a time you had to lead a project under a tight deadline. How did you handle it?",
     "Describe a situation where you disagreed with a team member. How did you resolve the conflict?",
     "What is your most significant professional achievement and what steps did you take to reach it?",
@@ -26,6 +27,28 @@ const INTERVIEW_QUESTIONS = [
 ];
 
 export default function InterviewPage() {
+    const [questions, setQuestions] = useState<string[]>(FALLBACK_QUESTIONS);
+    const [isLoadingQuestions, setIsLoadingQuestions] = useState(true);
+
+    useEffect(() => {
+        const fetchAnalysis = async () => {
+            try {
+                const resumeId = localStorage.getItem('currentResumeId');
+                if (resumeId) {
+                    const res = await axios.get(`http://localhost:5000/api/resumeAnalysis/${resumeId}`);
+                    const aiQuestions = res.data.aiAnalysisResult?.interviewQuestions;
+                    if (aiQuestions && aiQuestions.length > 0) {
+                        setQuestions(aiQuestions.slice(0, 10)); // Ensure max 10
+                    }
+                }
+            } catch (err) {
+                console.error("Failed to load custom custom questions, using fallbacks.", err);
+            } finally {
+                setIsLoadingQuestions(false);
+            }
+        };
+        fetchAnalysis();
+    }, []);
     const [activeQuestion, setActiveQuestion] = useState(0);
     const [answer, setAnswer] = useState("");
     const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -55,7 +78,7 @@ export default function InterviewPage() {
     };
 
     const nextQuestion = () => {
-        if (activeQuestion < INTERVIEW_QUESTIONS.length - 1) {
+        if (activeQuestion < questions.length - 1) {
             setActiveQuestion(prev => prev + 1);
             setAnswer("");
             setFeedback(null);
@@ -113,25 +136,31 @@ export default function InterviewPage() {
                             <Card className="p-8 premium-card bg-card/60 backdrop-blur-3xl border-white/10 shadow-3d h-full">
                                 <h3 className="text-xs font-black text-secondary tracking-[0.3em] uppercase mb-8">Scenario Sequence</h3>
                                 <div className="space-y-3">
-                                    {INTERVIEW_QUESTIONS.map((_, idx) => (
-                                        <button
-                                            key={idx}
-                                            onClick={() => {
-                                                setActiveQuestion(idx);
-                                                setAnswer("");
-                                                setFeedback(null);
-                                            }}
-                                            className={cn(
-                                                "w-full text-left px-4 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all duration-300 flex items-center justify-between group",
-                                                activeQuestion === idx
-                                                    ? "bg-accent/20 border border-accent/40 text-accent ring-1 ring-accent/20"
-                                                    : "bg-white/5 border border-transparent text-secondary hover:bg-white/10 hover:border-white/10"
-                                            )}
-                                        >
-                                            <span>Question {idx + 1}</span>
-                                            {activeQuestion === idx && <ChevronRight size={14} className="animate-pulse" />}
-                                        </button>
-                                    ))}
+                                    {isLoadingQuestions ? (
+                                        <div className="flex justify-center p-8">
+                                            <Loader2 className="animate-spin text-accent" />
+                                        </div>
+                                    ) : (
+                                        questions.map((_, idx) => (
+                                            <button
+                                                key={idx}
+                                                onClick={() => {
+                                                    setActiveQuestion(idx);
+                                                    setAnswer("");
+                                                    setFeedback(null);
+                                                }}
+                                                className={cn(
+                                                    "w-full text-left px-4 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all duration-300 flex items-center justify-between group",
+                                                    activeQuestion === idx
+                                                        ? "bg-accent/20 border border-accent/40 text-accent ring-1 ring-accent/20"
+                                                        : "bg-white/5 border border-transparent text-secondary hover:bg-white/10 hover:border-white/10"
+                                                )}
+                                            >
+                                                <span>Question {idx + 1}</span>
+                                                {activeQuestion === idx && <ChevronRight size={14} className="animate-pulse" />}
+                                            </button>
+                                        ))
+                                    )}
                                 </div>
                             </Card>
                         </PerspectiveCard>
@@ -153,7 +182,7 @@ export default function InterviewPage() {
                                             Scenario {activeQuestion + 1} / 10
                                         </div>
                                         <h2 className="text-2xl md:text-3xl font-black text-foreground leading-tight tracking-tight">
-                                            {INTERVIEW_QUESTIONS[activeQuestion]}
+                                            {questions[activeQuestion]}
                                         </h2>
                                     </div>
                                 </div>
@@ -259,7 +288,7 @@ export default function InterviewPage() {
                                                 <Button variant="outline" onClick={() => setFeedback(null)} className="h-12 px-6 rounded-xl border-white/10 text-secondary uppercase tracking-widest text-xs font-black">
                                                     Try Again
                                                 </Button>
-                                                <Button onClick={nextQuestion} disabled={activeQuestion === INTERVIEW_QUESTIONS.length - 1} className="h-12 px-6 rounded-xl bg-accent hover:bg-accent/90 text-white uppercase tracking-widest text-xs font-black group">
+                                                <Button onClick={nextQuestion} disabled={activeQuestion === questions.length - 1} className="h-12 px-6 rounded-xl bg-accent hover:bg-accent/90 text-white uppercase tracking-widest text-xs font-black group">
                                                     Next Scenario
                                                     <ArrowRight size={14} className="ml-2 group-hover:translate-x-1 transition-transform" />
                                                 </Button>
