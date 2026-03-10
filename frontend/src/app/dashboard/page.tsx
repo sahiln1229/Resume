@@ -90,6 +90,7 @@ export default function DashboardPage() {
                                 Export Protocol
                             </button>
                         </Magnetic>
+                    </motion.div>
                 </div>
             </div>
 
@@ -187,7 +188,6 @@ export default function DashboardPage() {
                     </motion.div>
                 ))}
             </div>
-        </div>
-        </main >
+        </main>
     );
 }

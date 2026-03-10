@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, useScroll, useTransform } from 'framer-motion';
+import { motion, useScroll, useTransform, Variants } from 'framer-motion';
 import { Button } from '@/components/ui/Button';
 import { Canvas } from '@react-three/fiber';
 import { PerspectiveCamera, OrbitControls } from '@react-three/drei';
@@ -10,7 +10,7 @@ import Link from 'next/link';
 import Magnetic from '@/components/ui/Magnetic';
 import { useRef } from 'react';
 
-const container = {
+const container: Variants = {
     hidden: { opacity: 0 },
     show: {
         opacity: 1,
@@ -21,7 +21,7 @@ const container = {
     }
 };
 
-const item = {
+const item: Variants = {
     hidden: { opacity: 0, y: 30 },
     show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100 } }
 };
