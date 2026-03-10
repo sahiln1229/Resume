@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Navbar } from '@/components/layout/Navbar';
+// Navbar removed as per request
 import Scene3D from '@/components/3d/Scene3D';
 import Magnetic from '@/components/ui/Magnetic';
 import PerspectiveCard from '@/components/ui/PerspectiveCard';
@@ -40,7 +40,20 @@ export default function LoginPage() {
     return (
         <main className="min-h-screen pt-40 pb-20 px-6 relative overflow-hidden bg-transparent">
             <Scene3D />
-            <Navbar />
+            {/* Minimal Header */}
+            <div className="absolute top-0 left-0 right-0 p-8 flex justify-center md:justify-start z-[100]">
+                <Link href="/" className="flex items-center gap-3 group">
+                    <motion.div
+                        whileHover={{ rotate: 90 }}
+                        className="w-10 h-10 bg-accent rounded-xl flex items-center justify-center shadow-3d group-hover:scale-110 transition-transform"
+                    >
+                        <Cpu className="text-white" size={20} />
+                    </motion.div>
+                    <span className="text-xl font-black text-foreground tracking-tighter uppercase italic">
+                        RE<span className="text-accent">S</span>UME<span className="text-gradient">AI</span>
+                    </span>
+                </Link>
+            </div>
 
             <div className="max-w-md mx-auto relative z-10">
                 <div className="text-center mb-12">
